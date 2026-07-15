@@ -1,5 +1,5 @@
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import express, { type Express, type Request, type Response } from "express";
-import { MongoClient, ServerApiVersion } from "mongodb";
 import cors from "cors";
 import dotenv from "dotenv";
 
@@ -57,10 +57,28 @@ async function run() {
       },
     );
 
-    app.get("/api/courses", async(req:Request, res:Response) => {
-        const courses = await coursesCollection.find().toArray();
-        res.send(courses);
-    })
+    app.get("/api/courses", async (req: Request, res: Response) => {
+      const courses = await coursesCollection.find().toArray();
+      res.send(courses);
+    });
+
+    app.get("/api/courses/:id", async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        if (!ObjectId.isValid(id)) {
+          res.status(400).json({ error: "Invalid course ID format" });
+          return;
+        }
+        const query = ObjectId.isValid(id)
+          ? { $or: [{ _id: new ObjectId(id) as any }, { _id: id }] }
+          : { _id: id };
+        const course = await coursesCollection.findOne(query);
+        res.send(course);
+      } catch (error) {
+        console.error("GET /api/courses/:id Error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
