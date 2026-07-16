@@ -80,6 +80,25 @@ async function run() {
       }
     });
 
+    app.delete("/api/courses/:id", async (req: Request, res: Response) => {
+      // Crucial: You must wrap the string parameter inside an ObjectId instance
+      const { id } = req.params;
+      if (!ObjectId.isValid(id)) {
+        res.status(400).json({ error: "Invalid course ID format" });
+        return;
+      }
+      const query = ObjectId.isValid(id)
+        ? { $or: [{ _id: new ObjectId(id) as any }, { _id: id }] }
+        : { _id: id };
+      const result = await coursesCollection.deleteOne(query);
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: "No course matched that ID" });
+      }
+
+      return res.status(200).json({ message: "Deleted successfully" });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
